@@ -1,4 +1,4 @@
-Smart Task Helper
+Smart Task Helper with AI
 -----------------
 A simple one-page web app that uses an LLM to break vague goals into clear, actionable steps.
 
