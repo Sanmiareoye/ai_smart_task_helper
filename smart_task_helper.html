@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Smart Task Helper</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial,
+          sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+      }
+
+      .container {
+        background: white;
+        padding: 40px;
+        border-radius: 10px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        max-width: 800px;
+        width: 100%;
+      }
+
+      h1 {
+        color: #333;
+        margin-bottom: 10px;
+        font-size: 28px;
+      }
+
+      #prompt {
+        width: 100%;
+        padding: 15px;
+        border: 2px solid #e0e0e0;
+        border-radius: 10px;
+        font-size: 16px;
+        margin-bottom: 15px;
+        transition: border-color 0.3s;
+      }
+
+      #prompt:focus {
+        outline: none;
+        border-color: #667eea;
+      }
+
+      #generate {
+        width: 100%;
+        padding: 15px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+      }
+
+      #generate:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+      }
+
+      #generate:active {
+        transform: translateY(0);
+      }
+
+      #generate:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      #output {
+        margin-bottom: 15px;
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 10px;
+        line-height: 1.8;
+        color: #333;
+      }
+
+      #output strong {
+        font-weight: 600;
+      }
+
+      #output::before {
+        content: "";
+        display: block;
+      }
+      #output:empty {
+        display: none;
+      }
+
+      .loading {
+        text-align: center;
+        color: #667eea;
+        font-style: italic;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🎯 Smart Task Helper</h1>
+      <div id="output"></div>
+      <input
+        type="text"
+        placeholder="e.g., get healthier, learn programming..."
+        id="prompt"
+      />
+      <button id="generate">Generate Steps</button>
+    </div>
+    <script>
+      const API_KEY = "...";
+
+      async function getCompletion(prompt) {
+        const res = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + API_KEY,
+          },
+          body: JSON.stringify({
+            model: "gpt-4.1-mini",
+            messages: [
+              {
+                role: "system",
+                content:
+                  "You are a helpful assistant that breaks vague tasks into 3 - 5 simple actionable steps.",
+              },
+              { role: "user", content: prompt },
+            ],
+            max_completion_tokens: 150,
+            temperature: 0.2,
+          }),
+        });
+
+        return await res.json();
+      }
+
+      const prompt = document.getElementById("prompt");
+      const button = document.getElementById("generate");
+      const output = document.getElementById("output");
+
+      button.addEventListener("click", async () => {
+        if (!prompt.value) return;
+
+        button.disabled = true;
+        button.textContent = "Generating...";
+        output.innerHTML =
+          '<p class="loading">✨ Breaking down your task...</p>';
+        try {
+          const response = await getCompletion(prompt.value);
+
+          if (!response || response.error) {
+            throw new Error(
+              response.error.message || "Failed to recieve a response from API"
+            );
+          }
+
+          let content = response.choices[0].message.content;
+
+          content = content.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+          content = content.replace(
+            /^(\d+\.\s*)([^:]+):/gm,
+            "$1<strong>$2</strong><br>"
+          );
+          content = content.replace(/\n\n/g, "<br><br>");
+          content = content.replace(/\n/g, "<br>");
+
+          output.innerHTML = content;
+          console.log(response);
+        } catch (err) {
+          const errMsg = "Oops! Something went wrong, please try again later.";
+          output.innerHTML = errMsg;
+          console.error(err);
+        } finally {
+          button.disabled = false;
+          button.textContent = "Generate Steps";
+        }
+      });
+    </script>
+  </body>
+</html>
